@@ -27,6 +27,9 @@
 #define TENSTORRENT_IOCTL_CONFIGURE_TLB		_IO(TENSTORRENT_IOCTL_MAGIC, 13)
 #define TENSTORRENT_IOCTL_SET_NOC_CLEANUP		_IO(TENSTORRENT_IOCTL_MAGIC, 14)
 #define TENSTORRENT_IOCTL_SET_POWER_STATE		_IO(TENSTORRENT_IOCTL_MAGIC, 15)
+#define TENSTORRENT_IOCTL_POST_MESSAGE		_IO(TENSTORRENT_IOCTL_MAGIC, 16)
+#define TENSTORRENT_IOCTL_POLL_MESSAGE		_IO(TENSTORRENT_IOCTL_MAGIC, 17)
+#define TENSTORRENT_IOCTL_ABANDON_MESSAGE	_IO(TENSTORRENT_IOCTL_MAGIC, 18)
 
 // For tenstorrent_mapping.mapping_id. These are not array indices.
 #define TENSTORRENT_MAPPING_UNUSED		0
@@ -373,6 +376,46 @@ struct tenstorrent_power_state {
 #define TT_POWER_FLAG_MAX_AI_CLK        (1U << 0) /* 1=Max AI Clock, 0=Min AI Clock */
 #define TT_POWER_FLAG_MRISC_PHY_WAKEUP  (1U << 1) /* 1=PHY Wakeup,   0=PHY Powerdown */
 	__u16 power_settings[14];
+};
+
+struct tenstorrent_post_message_in {
+	__u32 target_select;
+	__u32 request[8];
+};
+
+struct tenstorrent_post_message_out {
+};
+
+struct tenstorrent_post_message {
+	struct tenstorrent_post_message_in in;
+	struct tenstorrent_post_message_out out;
+};
+
+struct tenstorrent_poll_message_in {
+	__u32 reserved;
+};
+
+struct tenstorrent_poll_message_out {
+	__u32 status;
+	__u32 response[8];
+};
+
+struct tenstorrent_poll_message {
+	struct tenstorrent_poll_message_in in;
+	struct tenstorrent_poll_message_out out;
+};
+
+struct tenstorrent_abandon_message_in {
+	__u32 reserved;
+};
+
+struct tenstorrent_abandon_message_out {
+	__u32 reserved;
+};
+
+struct tenstorrent_abandon_message {
+	struct tenstorrent_abandon_message_in in;
+	struct tenstorrent_abandon_message_out out;
 };
 
 #endif
