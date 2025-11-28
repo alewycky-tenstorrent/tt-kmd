@@ -55,6 +55,8 @@ struct tenstorrent_device {
 
 	struct attribute **telemetry_attrs;
 	struct attribute_group telemetry_group;
+
+	struct list_head smc_message_queue; // chardev_private.smc_message_queue
 };
 
 struct tlb_descriptor;

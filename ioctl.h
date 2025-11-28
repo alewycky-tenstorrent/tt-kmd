@@ -410,6 +410,7 @@ struct tenstorrent_abandon_message_in {
 };
 
 struct tenstorrent_abandon_message_out {
+	__u32 in_fw: 1;
 	__u32 reserved;
 };
 

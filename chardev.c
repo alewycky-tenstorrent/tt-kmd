@@ -449,6 +449,102 @@ static long ioctl_set_power_state(struct chardev_private *priv, struct tenstorre
 	return tenstorrent_set_aggregated_power_state(tt_dev);
 }
 
+static long ioctl_smc_msg_post(struct chardev_private *priv, struct tenstorrent_post_message __user *arg)
+{
+	struct tenstorrent_device *tt_dev = priv->device;
+	struct tenstorrent_post_message_in in = {0};
+	struct tenstorrent_post_message_in out = {0};
+
+	if (copy_from_user(&in, &arg->in, sizeof(in)) != 0)
+		return -EFAULT;
+
+	mutex_lock(&priv->mutex);
+
+	if (priv->smc_message_state != SMC_MESSAGE_STATE_EMPTY)
+		return -EINVAL;
+
+	memcpy(priv->smc_message.data, post.in.request, sizeof(priv->smc_message.data));
+	priv->smc_message_state = SMC_MESSAGE_STATE_REQUEST_PRESENT;
+	// Need tt_dev mutex here
+	list_add_tail(&priv->smc_message_queue, &tt_dev->smc_message_queue);
+
+	mutex_unlock(&priv->mutex);
+
+	pump_smc_message_queue(tt_dev);
+
+	if (copy_to_user(&arg->out, &out, sizeof(out)) != 0)
+		return -EFAULT;
+
+	return 0;
+}
+
+static long ioctl_smc_msg_poll(struct chardev_private *priv, struct tenstorrent_poll_message __user *arg)
+{
+	struct tenstorrent_device *tt_dev = priv->device;
+	struct tenstorrent_poll_message_in in = {0};
+	struct tenstorrent_poll_message_out out = {0};
+
+	int ret = 0;
+
+	if (copy_from_user(&in, &arg->in, sizeof(in)) != 0)
+		return -EFAULT;
+
+	mutex_lock(&priv->mutex);
+
+	if (priv->smc_message_state != SMC_MESSAGE_STATE_RESPONSE_PRESENT) {
+		mutex_unlock(&priv->mutex);
+		pump_smc_message_queue(tt_dev);
+		mutex_lock(&priv->mutex);
+	}
+
+	if (priv->smc_message_state == SMC_MESSAGE_STATE_EMPTY) {
+		ret = -EINVAL;
+		goto out_unlock;
+	} else if (priv->smc_message_state == SMC_MESSAGE_STATE_REQUEST_PRESENT
+		   || priv->smc_message_state == SMC_MESSAGE_STATE_REQUEST_IN_FW) {
+		out.status = false;
+	} else if (priv->smc_message_state == SMC_MESSAGE_STATE_RESPONSE_PRESENT) {
+		memcpy(out.response, priv->smc_message.data, sizeof(out.response));
+		out.status = true;
+
+		priv->smc_message_state = SMC_MESSAGE_STATE_EMPTY;
+	}
+
+	if (copy_to_user(&arg->out, &out, sizeof(out)) != 0)
+		ret = -EFAULT;
+
+out_unlock:
+	mutex_unlock(&priv->mutex);
+	return ret;
+}
+
+static long ioctl_smc_msg_abandon(struct chardev_private *priv, struct tenstorrent_abandon_message __user *arg)
+{
+	struct tenstorrent_device *tt_dev = priv->device;
+	struct tenstorrent_abandon_message_in in = {0};
+	struct tenstorrent_abandon_message_out out = {0};
+	int ret = 0;
+
+	if (copy_from_user(&in, &arg->in, sizeof(in)) != 0)
+		return -EFAULT;
+
+	mutex_lock(&priv->mutex);
+
+	if (priv->smc_message_state == SMC_MESSAGE_STATE_REQUEST_IN_FW) {
+		tt_dev->smc_message_abandoned = true;
+		out.in_fw = true;
+	}
+
+	priv->smc_message_state = SMC_MESSAGE_STATE_EMPTY;
+
+	mutex_lock(&priv->mutex);
+
+	if (copy_to_user(&arg->out, &out, sizeof(out)) != 0)
+		ret = -EFAULT;
+
+	return 0;
+}
+
 static long tt_cdev_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
 	long ret = -EINVAL;

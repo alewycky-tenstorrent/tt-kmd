@@ -47,6 +47,10 @@ struct chardev_private {
 	struct list_head peer_mappings; // struct peer_resource_mapping.list
 	struct list_head bar_mappings;	// struct bar_mapping.list
 
+	struct list_head smc_message_queue;
+	struct smc_message smc_message; // Stores request, response or nothing depending on state.
+	enum smc_message_state smc_message_state;
+
 	pid_t pid;
 	char comm[TASK_COMM_LEN];
 
