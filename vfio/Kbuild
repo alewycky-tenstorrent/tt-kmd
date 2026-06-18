@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: © 2026 Tenstorrent Inc.
+# SPDX-License-Identifier: GPL-2.0-only
+
+# Module is named tenstorrent_vfio_pci; the source file keeps the tt_ prefix.
+obj-m += tenstorrent_vfio_pci.o
+tenstorrent_vfio_pci-y := tt_vfio_pci.o

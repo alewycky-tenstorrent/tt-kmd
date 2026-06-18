@@ -4,6 +4,9 @@
 obj-m += tenstorrent.o
 tenstorrent-y := module.o chardev.o enumerate.o interrupt.o wormhole.o blackhole.o msgqueue.o pcie.o sg_helpers.o memory.o tlb.o telemetry.o
 
+# Custom vfio-pci variant driver for Wormhole/Blackhole (built as vfio/tenstorrent_vfio_pci.ko).
+obj-m += vfio/
+
 # Capture the module directory at the top level before kernel build system changes context
 MODULE_DIR := $(CURDIR)
 
